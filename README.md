@@ -87,9 +87,10 @@
 | `JWT_EXPIRES_IN` | `7d` | JWT 过期时间 |
 | `DATABASE_URL` | _（必填）_ | Prisma 连 Postgres 的 URL，例如 `postgresql://family:family@localhost:5432/family` |
 | `UPLOADS_DIR` | `uploads` | 上传目录（相对 server 工作目录） |
-| `OPENAI_API_KEY` | _（空）_ | 留空时使用 stub，端到端仍可跑 |
-| `OPENAI_TEXT_MODEL` | `gpt-4o-mini` | Chat Completions 模型 |
-| `OPENAI_IMAGE_MODEL` | `dall-e-3` | Images 模型，失败回退占位图 |
+| `OPENAI_BASE_URL` | `https://maas.10rig.com/v1` | OpenAI 兼容协议的 base URL（默认走 10rig 中转站） |
+| `OPENAI_API_KEY` | _（示例已填）_ | 留空时使用 stub，端到端仍可跑 |
+| `OPENAI_TEXT_MODEL` | `minimax-m2.7` | Chat Completions 模型；必须是 `/v1/models` 列出来的模型，当前 key 授权 `minimax-m2.7` |
+| `OPENAI_IMAGE_MODEL` | `dall-e-3` | Images 模型，10rig 当前不一定支持图像生成；失败时自动回退占位图 |
 | `CRON_BREAKFAST` | `30 7 * * *` | 早餐触发 cron |
 | `CRON_LUNCH` | `0 12 * * *` | 午餐触发 cron |
 | `CRON_DINNER` | `30 18 * * *` | 晚餐触发 cron |
@@ -136,10 +137,10 @@
 后端用一个 `AiService` 接口隔离 AI 调用：
 
 - 默认实现：本地 stub（`server/src/services/ai.ts`）。返回基于关键词推断的简易画像、`placehold.co` 占位头像、模板化轮流对话。**无网络也能跑通完整闭环和测试。**
-- 生产实现：在 `OPENAI_API_KEY` 存在时切换到 `services/openai.ts`，使用 `gpt-4o-mini` 抽人格 / 生对话，`dall-e-3` 生成头像。
+- 生产实现：在 `OPENAI_API_KEY` 存在时切换到 `services/openai.ts`，使用 `OPENAI_TEXT_MODEL` 抽人格 / 生对话，`OPENAI_IMAGE_MODEL` 生成头像。默认走 10rig 中转站（`https://maas.10rig.com/v1`），可通过 `OPENAI_BASE_URL` 切换到 OpenAI 官方或其它兼容协议的端点。**模型必须是 base URL `/v1/models` 列出来的，否则会 403。** 当前 key 默认开放 `minimax-m2.7`。
 - 测试：`setAiService(...)` 可以注入任意 mock；`tests/dinner.test.ts` 用 mock 验证调度器调用形态。
 
-切换只需要在 `.env` 里填 `OPENAI_API_KEY`，无需改代码。
+切换只需要在 `.env` 里填 `OPENAI_API_KEY` 和 `OPENAI_BASE_URL`（已预填 10rig 中转站地址），无需改代码。
 
 <a id="local-dev"></a>
 ## 本地启动
@@ -156,7 +157,7 @@ docker run -d --name family-pg -p 5432:5432 \
 
 ```bash
 cd server
-cp .env.example .env       # 按需填写 OPENAI_API_KEY 等
+cp .env.example .env       # 已预填 10rig 中转站 + API key，按需修改
 npm install
 npx prisma generate
 npx prisma db push         # 把 schema.prisma 同步到 Postgres
@@ -180,7 +181,7 @@ npm run dev                # http://localhost:5173 ，已配 /api 代理到 :300
 仓库根：
 
 ```bash
-# 可在仓库根放 .env 提供 JWT_SECRET / OPENAI_API_KEY 之类的覆盖。
+# 可在仓库根放 .env 提供 JWT_SECRET / OPENAI_BASE_URL / OPENAI_API_KEY 之类的覆盖。
 docker compose up -d --build
 ```
 
@@ -219,7 +220,7 @@ cd family-frontend && npm test
 - 用户密码使用 bcrypt 加盐 hash 存储，不可逆。
 - 家庭空间、成员、画像、对话全部按 `ownerId` 做权限隔离。任何越权访问都返回 404，避免泄露资源是否存在。
 - 删除空间 / 成员触发 Prisma `onDelete: Cascade`，关联的画像、上传文件元数据、饭局、对话一并清空。上传的物理文件（`uploads/`）会在删除资料 API 中同步删除。
-- 默认 stub AI 不联网；启用 OpenAI 后，发送给 OpenAI 的内容包括成员姓名、关系、用户填写的描述和上传的文本资料；不包括邮箱、密码、JWT。**生产部署前请向最终用户披露这一点**。
+- 默认 stub AI 不联网；启用 OpenAI 兼容协议的 API 后（本项目默认使用 10rig 中转站），发送给 API 的内容包括成员姓名、关系、用户填写的描述和上传的文本资料；不包括邮箱、密码、JWT。**生产部署前请向最终用户披露这一点**。
 - `.env` 不进 git；`uploads/` 不进 git。
 
 <a id="known"></a>

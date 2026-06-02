@@ -7,6 +7,7 @@ export interface AppConfig {
   databaseUrl: string;
   uploadsDir: string;
   openaiApiKey: string | null;
+  openaiBaseUrl: string | null;
   // Cron expressions for the three meals.
   cronBreakfast: string;
   cronLunch: string;
@@ -31,6 +32,7 @@ export function loadConfig(): AppConfig {
     databaseUrl: process.env.DATABASE_URL ?? '',
     uploadsDir: process.env.UPLOADS_DIR ?? 'uploads',
     openaiApiKey: process.env.OPENAI_API_KEY?.trim() || null,
+    openaiBaseUrl: process.env.OPENAI_BASE_URL?.trim() || null,
     cronBreakfast: process.env.CRON_BREAKFAST ?? '30 7 * * *',
     cronLunch: process.env.CRON_LUNCH ?? '0 12 * * *',
     cronDinner: process.env.CRON_DINNER ?? '30 18 * * *',

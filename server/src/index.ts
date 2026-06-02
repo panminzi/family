@@ -7,7 +7,7 @@ function main(): void {
   const cfg = loadConfig();
   const app = createApp();
 
-  const aiActivated = activateOpenAiServiceIfConfigured(cfg.openaiApiKey);
+  const aiActivated = activateOpenAiServiceIfConfigured(cfg.openaiApiKey, cfg.openaiBaseUrl);
 
   app.listen(cfg.port, () => {
     // eslint-disable-next-line no-console

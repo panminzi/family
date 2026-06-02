@@ -28,8 +28,9 @@ services:
       DATABASE_URL: postgresql://family:family@postgres:5432/family?schema=public
       JWT_SECRET: ${JWT_SECRET:-dev-only-change-me}
       JWT_EXPIRES_IN: 7d
-      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-      OPENAI_TEXT_MODEL: ${OPENAI_TEXT_MODEL:-gpt-4o-mini}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://maas.10rig.com/v1}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-sk-DE5QP1TncOaHNcjAi9HmTWKJkU14V4a7FcFcR5lJ002aj8og}
+      OPENAI_TEXT_MODEL: ${OPENAI_TEXT_MODEL:-minimax-m2.7}
       OPENAI_IMAGE_MODEL: ${OPENAI_IMAGE_MODEL:-dall-e-3}
       ENABLE_SCHEDULER: "1"
       CRON_BREAKFAST: "30 7 * * *"

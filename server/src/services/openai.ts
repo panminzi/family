@@ -10,8 +10,11 @@ import {
   setAiService,
 } from './ai';
 
-function buildOpenAIService(apiKey: string): AiService {
-  const client = new OpenAI({ apiKey });
+function buildOpenAIService(apiKey: string, baseURL?: string | null): AiService {
+  const client = new OpenAI({
+    apiKey,
+    ...(baseURL ? { baseURL } : {}),
+  });
 
   return {
     async extractPersonality({ name, relation, description, extraTexts }) {
@@ -116,8 +119,11 @@ function buildOpenAIService(apiKey: string): AiService {
   };
 }
 
-export function activateOpenAiServiceIfConfigured(apiKey: string | null): boolean {
+export function activateOpenAiServiceIfConfigured(
+  apiKey: string | null,
+  baseURL?: string | null,
+): boolean {
   if (!apiKey) return false;
-  setAiService(buildOpenAIService(apiKey));
+  setAiService(buildOpenAIService(apiKey, baseURL));
   return true;
 }
