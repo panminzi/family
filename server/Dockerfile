@@ -1,22 +1,24 @@
-FROM python:3.11-slim
-
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1
-
+FROM node:20-alpine AS deps
 WORKDIR /app
+COPY package.json ./
+RUN npm install --omit=dev --no-audit --no-fund
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-        build-essential libpq-dev curl \
-    && rm -rf /var/lib/apt/lists/*
-
-COPY requirements.txt ./
-RUN pip install -r requirements.txt
-
+FROM node:20-alpine AS build
+WORKDIR /app
+COPY package.json ./
+RUN npm install --no-audit --no-fund
 COPY . .
+RUN npx prisma generate
+RUN npm run build
 
+FROM node:20-alpine
+WORKDIR /app
+ENV NODE_ENV=production
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=build /app/dist ./dist
+COPY --from=build /app/prisma ./prisma
+COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma
+COPY package.json ./
 RUN mkdir -p uploads
-
-EXPOSE 8000
-
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+EXPOSE 3000
+CMD ["sh", "-c", "npx prisma migrate deploy --schema=prisma/schema.prisma || npx prisma db push --schema=prisma/schema.prisma --skip-generate; node dist/index.js"]

@@ -1,62 +1,54 @@
-version: "3.9"
-
 services:
-  db:
-    image: postgres:15-alpine
-    restart: unless-stopped
+  postgres:
+    image: postgres:16-alpine
+    container_name: cartoon-family-postgres
     environment:
       POSTGRES_USER: family
-      POSTGRES_PASSWORD: family_pass
+      POSTGRES_PASSWORD: family
       POSTGRES_DB: family
-    volumes:
-      - db_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U family -d family"]
+      test: ["CMD", "pg_isready", "-U", "family"]
       interval: 5s
       timeout: 5s
       retries: 10
 
-  redis:
-    image: redis:7-alpine
-    restart: unless-stopped
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-
-  api:
-    build:
-      context: ./server
-      dockerfile: Dockerfile
-    restart: unless-stopped
-    env_file:
-      - ./server/.env.example
-    environment:
-      DATABASE_URL: postgresql+psycopg://family:family_pass@db:5432/family
-      REDIS_URL: redis://redis:6379/0
+  server:
+    build: ./server
+    container_name: cartoon-family-server
     depends_on:
-      db:
+      postgres:
         condition: service_healthy
-      redis:
-        condition: service_started
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://family:family@postgres:5432/family?schema=public
+      JWT_SECRET: ${JWT_SECRET:-dev-only-change-me}
+      JWT_EXPIRES_IN: 7d
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_TEXT_MODEL: ${OPENAI_TEXT_MODEL:-gpt-4o-mini}
+      OPENAI_IMAGE_MODEL: ${OPENAI_IMAGE_MODEL:-dall-e-3}
+      ENABLE_SCHEDULER: "1"
+      CRON_BREAKFAST: "30 7 * * *"
+      CRON_LUNCH: "0 12 * * *"
+      CRON_DINNER: "30 18 * * *"
+      UPLOADS_DIR: /app/uploads
     ports:
-      - "8000:8000"
+      - "3000:3000"
     volumes:
-      - uploads:/app/uploads
+      - server_uploads:/app/uploads
 
-  nginx:
-    image: nginx:1.27-alpine
-    restart: unless-stopped
-    ports:
-      - "80:80"
-    volumes:
-      - ./deploy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+  frontend:
+    build: ./family-frontend
+    container_name: cartoon-family-frontend
     depends_on:
-      - api
+      - server
+    ports:
+      - "8080:80"
 
 volumes:
-  db_data:
-  redis_data:
-  uploads:
+  postgres_data:
+  server_uploads:

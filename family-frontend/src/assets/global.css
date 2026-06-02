@@ -1,0 +1,44 @@
+:root {
+  --warm-bg: #fffbf3;
+  --warm-border: #f1d9b3;
+  --warm-accent: #ff8a65;
+  --warm-text: #563a18;
+}
+
+* { box-sizing: border-box; }
+html, body, #app { margin: 0; padding: 0; min-height: 100%; background: var(--warm-bg); color: var(--warm-text); font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "PingFang SC", Arial, sans-serif; }
+
+.page {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.card-row { display: flex; flex-wrap: wrap; gap: 0.8rem; }
+.member-card {
+  background: #fff;
+  border-radius: 14px;
+  padding: 1rem;
+  box-shadow: 0 2px 12px rgba(255, 138, 101, 0.08);
+  width: 240px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.member-card img.avatar {
+  width: 96px; height: 96px; border-radius: 50%; object-fit: cover;
+  background: #f5e2c8;
+}
+
+.chat-list { display: flex; flex-direction: column; gap: 0.6rem; }
+.chat-bubble {
+  background: #fff;
+  border-radius: 14px;
+  padding: 0.7rem 1rem;
+  max-width: 70%;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+}
+.chat-bubble.user { align-self: flex-end; background: #ffe2b8; }
+.chat-bubble .speaker { font-weight: 600; color: #c47c2c; margin-right: 0.4rem; }
+
+.empty-tip { color: #999; padding: 1.5rem; text-align: center; }

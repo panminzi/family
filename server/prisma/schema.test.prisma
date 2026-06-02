@@ -1,0 +1,78 @@
+// Identical to schema.prisma but uses SQLite — used by `npm test` so the suite
+// runs without external infra. Production paths use the postgres schema.
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client-test"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./test.db"
+}
+
+model User {
+  id           String        @id @default(uuid())
+  email        String        @unique
+  passwordHash String
+  displayName  String
+  createdAt    DateTime      @default(now())
+  spaces       FamilySpace[]
+}
+
+model FamilySpace {
+  id        String         @id @default(uuid())
+  name      String
+  ownerId   String
+  owner     User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  createdAt DateTime       @default(now())
+  members   FamilyMember[]
+  sessions  DinnerSession[]
+}
+
+model FamilyMember {
+  id          String     @id @default(uuid())
+  spaceId     String
+  space       FamilySpace @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  name        String
+  relation    String
+  description String
+  personality String?
+  avatarUrl   String?
+  createdAt   DateTime   @default(now())
+  materials   Material[]
+  messages    ChatMessage[]
+}
+
+model Material {
+  id        String       @id @default(uuid())
+  memberId  String
+  member    FamilyMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  kind      String
+  filePath  String?
+  textBody  String?
+  createdAt DateTime     @default(now())
+}
+
+model DinnerSession {
+  id        String        @id @default(uuid())
+  spaceId   String
+  space     FamilySpace   @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  mealType  String
+  startedAt DateTime      @default(now())
+  endedAt   DateTime?
+  messages  ChatMessage[]
+}
+
+model ChatMessage {
+  id        String        @id @default(uuid())
+  sessionId String
+  session   DinnerSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  memberId  String?
+  member    FamilyMember? @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  role      String
+  speaker   String
+  content   String
+  sequence  Int
+  createdAt DateTime      @default(now())
+}

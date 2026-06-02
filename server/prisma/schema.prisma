@@ -1,0 +1,78 @@
+// Production schema: PostgreSQL.
+// For tests, see prisma/schema.test.prisma (provider = sqlite, identical model layout).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String        @id @default(uuid())
+  email        String        @unique
+  passwordHash String
+  displayName  String
+  createdAt    DateTime      @default(now())
+  spaces       FamilySpace[]
+}
+
+model FamilySpace {
+  id        String         @id @default(uuid())
+  name      String
+  ownerId   String
+  owner     User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  createdAt DateTime       @default(now())
+  members   FamilyMember[]
+  sessions  DinnerSession[]
+}
+
+model FamilyMember {
+  id          String     @id @default(uuid())
+  spaceId     String
+  space       FamilySpace @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  name        String
+  relation    String
+  description String
+  // Personality profile is stored as a JSON string for cross-DB portability.
+  personality String?
+  avatarUrl   String?
+  createdAt   DateTime   @default(now())
+  materials   Material[]
+  messages    ChatMessage[]
+}
+
+model Material {
+  id        String       @id @default(uuid())
+  memberId  String
+  member    FamilyMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  kind      String       // "photo" | "text" | "dialogue"
+  filePath  String?
+  textBody  String?
+  createdAt DateTime     @default(now())
+}
+
+model DinnerSession {
+  id        String        @id @default(uuid())
+  spaceId   String
+  space     FamilySpace   @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  mealType  String        // "breakfast" | "lunch" | "dinner"
+  startedAt DateTime      @default(now())
+  endedAt   DateTime?
+  messages  ChatMessage[]
+}
+
+model ChatMessage {
+  id        String        @id @default(uuid())
+  sessionId String
+  session   DinnerSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  memberId  String?
+  member    FamilyMember? @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  role      String        // "member" | "user"
+  speaker   String        // 显示名（成员名 / "我"）
+  content   String
+  sequence  Int
+  createdAt DateTime      @default(now())
+}

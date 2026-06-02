@@ -1,39 +1,48 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-*.egg-info/
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
+# dependencies
+node_modules/
+.pnpm-store/
 
-# Virtualenv
-venv/
-.venv/
-env/
+# build output
+dist/
+build/
+*.tsbuildinfo
+
+# env
 .env
+.env.local
+.env.*.local
 
-# IDE
+# logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# uploads (runtime user data)
+uploads/
+server/uploads/
+server/tests/.uploads-test/
+
+# prisma sqlite test artifacts
+prisma/*.db
+prisma/*.db-journal
+server/prisma/*.db
+server/prisma/*.db-journal
+
+# editor / OS
+.DS_Store
 .idea/
 .vscode/
-*.swp
-.DS_Store
 
-# Project
-uploads/
-data/
-logs/
-*.log
-*.sqlite
-*.sqlite3
-*.db
+# coverage
+coverage/
 
-# Docker
-docker-compose.override.yml
+# misc
+.cache/
+.npm/
 
-# Multica scratch
-.multica/
+# Multica agent runtime artifacts (per-session, do not version)
 .agent_context/
 .claude/
+.multica/
+CLAUDE.md
