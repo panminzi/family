@@ -64,7 +64,7 @@ describe('MemberAddPage', () => {
     await w.find('[data-test="name"]').setValue('老王');
     await w.find('[data-test="relation"]').setValue('爸爸');
     await w.find('[data-test="description"]').setValue('幽默');
-    await w.find('[data-test="dialogue"]').setValue('哈哈，开饭啦');
+    await w.find('[data-test="dialogue-0"]').setValue('哈哈，开饭啦');
     await w.find('[data-test="submit"]').trigger('click');
     await flushPromises();
 
@@ -90,5 +90,37 @@ describe('MemberAddPage', () => {
     expect(err.exists()).toBe(true);
     expect(err.text()).toContain('请填写完整成员信息');
     expect(createMock).not.toHaveBeenCalled();
+  });
+
+  it('add/remove dialogue rows and submits each non-empty as dialogue', async () => {
+    createMock.mockResolvedValue({
+      id: 'm1', spaceId: 'sp1', name: '老王', relation: '爸爸',
+      description: '幽默', personality: null, avatarUrl: null,
+      createdAt: '2024-01-01T00:00:00Z',
+    });
+    textMock.mockResolvedValue({ id: 'mat1' });
+
+    const router = makeRouter();
+    router.push('/spaces/sp1/members/add');
+    await router.isReady();
+    const w = mount(MemberAddPage, { global: { plugins: [router] } });
+
+    await w.find('[data-test="name"]').setValue('老王');
+    await w.find('[data-test="relation"]').setValue('爸爸');
+    await w.find('[data-test="description"]').setValue('幽默');
+
+    // Add two more dialogue rows: 1 → 3 rows total.
+    await w.find('[data-test="dialogue-add"]').trigger('click');
+    await w.find('[data-test="dialogue-add"]').trigger('click');
+    await w.find('[data-test="dialogue-0"]').setValue('第一段');
+    await w.find('[data-test="dialogue-1"]').setValue('第二段');
+    // Leave row 2 empty — it should be skipped.
+
+    await w.find('[data-test="submit"]').trigger('click');
+    await flushPromises();
+
+    expect(textMock).toHaveBeenCalledTimes(2);
+    expect(textMock).toHaveBeenNthCalledWith(1, 'm1', 'dialogue', '第一段');
+    expect(textMock).toHaveBeenNthCalledWith(2, 'm1', 'dialogue', '第二段');
   });
 });

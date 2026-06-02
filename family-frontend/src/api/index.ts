@@ -29,6 +29,8 @@ export const membersApi = {
   create: (input: { spaceId: string; name: string; relation: string; description: string }) =>
     api.post<MemberDTO>('/members', input).then((r) => r.data),
   get: (id: string) => api.get<MemberDTO>(`/members/${id}`).then((r) => r.data),
+  update: (id: string, input: { name?: string; relation?: string; description?: string }) =>
+    api.put<MemberDTO>(`/members/${id}`, input).then((r) => r.data),
   remove: (id: string) => api.delete(`/members/${id}`).then((r) => r.data),
   generatePersonality: (id: string) =>
     api.post<MemberDTO>(`/members/${id}/personality`).then((r) => r.data),

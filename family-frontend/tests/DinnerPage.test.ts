@@ -19,7 +19,7 @@ vi.mock('../src/api', () => ({
   },
   authApi: {},
   spacesApi: {},
-  membersApi: {},
+  membersApi: { list: vi.fn(async () => []) },
 }));
 
 import DinnerPage from '../src/pages/DinnerPage.vue';
