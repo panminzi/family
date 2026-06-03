@@ -48,17 +48,46 @@ onMounted(load);
 
 <template>
   <div class="page" data-test="space-detail">
-    <h2 v-if="space">{{ space.name }}</h2>
-    <div class="actions">
-      <el-button type="primary" data-test="add-member" @click="addMember">添加成员</el-button>
-      <el-button data-test="open-scene" @click="openScene">进入家庭场景</el-button>
-      <el-button data-test="open-history" @click="openHistory">历史对话</el-button>
+    <div v-if="space" class="space-hero card warm">
+      <div class="space-hero-icon" aria-hidden="true">🏡</div>
+      <div class="space-hero-text">
+        <p class="muted">家庭空间</p>
+        <h1>{{ space.name }}</h1>
+        <p class="muted">
+          目前 {{ members.length }} 位家人
+          <span v-if="members.filter((m) => m.personality).length"> · {{ members.filter((m) => m.personality).length }} 位已生成画像</span>
+        </p>
+      </div>
+      <div class="space-hero-actions">
+        <el-button type="primary" class="btn-pill" data-test="open-scene" @click="openScene">
+          进入家庭场景
+        </el-button>
+        <el-button class="btn-pill" data-test="open-history" @click="openHistory">
+          历史对话
+        </el-button>
+      </div>
     </div>
+
     <p v-if="error" class="err">{{ error }}</p>
+
+    <div class="section-title">
+      <h2>家庭成员</h2>
+      <div class="actions">
+        <el-button type="primary" class="btn-pill" data-test="add-member" @click="addMember">
+          + 添加成员
+        </el-button>
+      </div>
+    </div>
+
     <p v-if="loading" class="empty-tip">加载中…</p>
-    <p v-else-if="members.length === 0" class="empty-tip" data-test="empty">
-      还没有成员，添加一个家人开始吧。
-    </p>
+    <div
+      v-else-if="members.length === 0"
+      class="empty-tip"
+      data-test="empty"
+    >
+      <p style="margin: 0 0 .6rem">还没有成员，添加一个家人开始吧。</p>
+      <el-button type="primary" class="btn-pill" @click="addMember">添加第一位家人</el-button>
+    </div>
     <div v-else class="card-row" data-test="member-list">
       <MemberCard
         v-for="m in members"
@@ -71,6 +100,26 @@ onMounted(load);
 </template>
 
 <style scoped>
-.actions { display: flex; gap: 0.6rem; margin-bottom: 1rem; flex-wrap: wrap; }
-.err { color: #d9534f; }
+.space-hero {
+  display: flex; align-items: center; gap: 1rem;
+  padding: 1.2rem;
+  margin-bottom: 1.2rem;
+  flex-wrap: wrap;
+}
+.space-hero-icon {
+  width: 60px; height: 60px;
+  font-size: 2rem;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--cream-100);
+  border-radius: 16px;
+  flex-shrink: 0;
+}
+.space-hero-text { flex: 1; min-width: 200px; }
+.space-hero-text p { margin: 0; }
+.space-hero-text h1 { margin: .15rem 0; font-size: 1.4rem; }
+.space-hero-actions { display: flex; gap: .5rem; flex-wrap: wrap; }
+@media (max-width: 480px) {
+  .space-hero-actions { width: 100%; }
+  .space-hero-actions .el-button { flex: 1; }
+}
 </style>

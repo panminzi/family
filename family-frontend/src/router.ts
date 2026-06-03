@@ -10,6 +10,7 @@ const MemberDetailPage = () => import('./pages/MemberDetailPage.vue');
 const SceneHomePage = () => import('./pages/SceneHomePage.vue');
 const DinnerPage = () => import('./pages/DinnerPage.vue');
 const HistoryPage = () => import('./pages/HistoryPage.vue');
+const PrivacyPage = () => import('./pages/PrivacyPage.vue');
 
 export const router = createRouter({
   history: createWebHistory(),
@@ -17,6 +18,7 @@ export const router = createRouter({
     { path: '/login', name: 'login', component: LoginPage },
     { path: '/register', name: 'register', component: RegisterPage },
     { path: '/', name: 'spaces', component: SpacesPage, meta: { auth: true } },
+    { path: '/privacy', name: 'privacy', component: PrivacyPage, meta: { auth: true } },
     {
       path: '/spaces/:spaceId',
       name: 'space-detail',
