@@ -12,6 +12,7 @@ export interface AppConfig {
   cronBreakfast: string;
   cronLunch: string;
   cronDinner: string;
+  cronSummary: string;
   // When true, the scheduler is started at boot. Tests turn this off.
   enableScheduler: boolean;
   nodeEnv: 'development' | 'production' | 'test';
@@ -36,6 +37,7 @@ export function loadConfig(): AppConfig {
     cronBreakfast: process.env.CRON_BREAKFAST ?? '30 7 * * *',
     cronLunch: process.env.CRON_LUNCH ?? '0 12 * * *',
     cronDinner: process.env.CRON_DINNER ?? '30 18 * * *',
+    cronSummary: process.env.CRON_SUMMARY ?? '0 2 * * 0',
     enableScheduler: envBool('ENABLE_SCHEDULER', env === 'production'),
     nodeEnv: env,
   };

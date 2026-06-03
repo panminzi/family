@@ -7,6 +7,7 @@ import { AuthedRequest, HttpError, requireAuth } from '../middleware/auth';
 import { getPrisma } from '../utils/prisma';
 import { getAiService, PersonalityProfile } from '../services/ai';
 import { loadConfig } from '../config';
+import { cascadeDeleteMember } from '../services/memory';
 
 const router = Router();
 const cfg = loadConfig();
@@ -117,8 +118,33 @@ router.put('/:id', async (req: AuthedRequest, res, next) => {
 
 router.delete('/:id', async (req: AuthedRequest, res, next) => {
   try {
-    await loadOwnedMember(req.userId!, req.params.id);
+    const m = await loadOwnedMember(req.userId!, req.params.id);
     const prisma = getPrisma();
+    // Cascade physical files first (asset images stored locally + photo materials).
+    const photoMats = m.materials.filter((mat: any) => mat.kind === 'photo' && mat.filePath);
+    for (const mat of photoMats) {
+      const p = path.join(cfg.uploadsDir, mat.filePath);
+      try {
+        fs.unlinkSync(p);
+      } catch {
+        /* ignore */
+      }
+    }
+    const assets = await prisma.generatedAsset.findMany({ where: { memberId: m.id } });
+    for (const a of assets) {
+      if (a.imageUrl?.startsWith('/uploads/')) {
+        const fname = a.imageUrl.replace('/uploads/', '');
+        const p = path.join(cfg.uploadsDir, fname);
+        try {
+          fs.unlinkSync(p);
+        } catch {
+          /* ignore */
+        }
+      }
+    }
+    // Redact cross-references in memory events that mention this member.
+    await cascadeDeleteMember(m.spaceId, m.id);
+    // Remaining FKs cascade automatically (memoryEvents-subject, generatedAssets, materials, messages).
     await prisma.familyMember.delete({ where: { id: req.params.id } });
     res.json({ ok: true });
   } catch (e) {

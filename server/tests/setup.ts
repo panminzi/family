@@ -34,6 +34,11 @@ afterEach(async () => {
   // Truncate all tables between tests via raw SQL.
   const { getPrisma } = await import('../src/utils/prisma');
   const prisma = getPrisma();
+  await prisma.$executeRawUnsafe('DELETE FROM TriggerLog');
+  await prisma.$executeRawUnsafe('DELETE FROM MemoryEvent');
+  await prisma.$executeRawUnsafe('DELETE FROM GeneratedAsset');
+  await prisma.$executeRawUnsafe('DELETE FROM FamilyEvent');
+  await prisma.$executeRawUnsafe('DELETE FROM Relation');
   await prisma.$executeRawUnsafe('DELETE FROM ChatMessage');
   await prisma.$executeRawUnsafe('DELETE FROM DinnerSession');
   await prisma.$executeRawUnsafe('DELETE FROM Material');

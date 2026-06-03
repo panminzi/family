@@ -29,6 +29,32 @@ export interface DialogueGenInput {
   history: Array<{ speaker: string; content: string }>;
   userTurn?: { content: string };
   rounds: number;
+  // V0.2 context injection: optional system block + memory + scene info.
+  systemPrompt?: string;
+  memoryBlock?: string;
+  sceneInjection?: string;
+  openingHook?: string;
+  props?: string[];
+}
+
+export interface AssetGenInput {
+  name: string;
+  relation: string;
+  personality: PersonalityProfile | null;
+  assetType: 'avatar' | 'full_body' | 'sitting' | string; // emoji_* allowed
+  emotion?: string;
+  referenceImageUrl?: string | null;
+  seed?: number;
+  size?: string; // "512x512" / "768x768" / "768x1152" / "256x256"
+}
+
+export interface AssetGenResult {
+  imageUrl: string;
+  isPlaceholder: boolean;
+  prompt: string;
+  seed?: number;
+  service: string;
+  cost?: number;
 }
 
 export interface AiService {
@@ -44,6 +70,8 @@ export interface AiService {
     personality: PersonalityProfile;
     relation: string;
   }): Promise<string>;
+
+  generateAsset?(input: AssetGenInput): Promise<AssetGenResult>;
 
   generateDialogue(input: DialogueGenInput): Promise<DialogueTurn[]>;
 }
@@ -66,10 +94,25 @@ const stubService: AiService = {
     const text = encodeURIComponent(name);
     return `https://placehold.co/512x512/png?text=${text}`;
   },
-  async generateDialogue({ members, mealType, rounds, userTurn }) {
+  async generateAsset({ name, assetType }) {
+    const text = encodeURIComponent(`${name}_${assetType}`);
+    const size = assetType === 'full_body' ? '768x1152' : assetType.startsWith('emoji') ? '256x256' : '512x512';
+    const [w, h] = size.split('x');
+    return {
+      imageUrl: `https://placehold.co/${w}x${h}/png?text=${text}`,
+      isPlaceholder: true,
+      prompt: `stub:${assetType}:${name}`,
+      service: 'stub',
+    };
+  },
+  async generateDialogue({ members, mealType, rounds, userTurn, openingHook }) {
     const turns: DialogueTurn[] = [];
     const meal = mealType === 'breakfast' ? '早餐' : mealType === 'lunch' ? '午餐' : '晚餐';
-    for (let i = 0; i < rounds; i++) {
+    if (openingHook) {
+      const m = members[0];
+      turns.push({ speaker: m.name, memberId: m.id, content: openingHook });
+    }
+    for (let i = turns.length; i < rounds; i++) {
       const m = members[i % members.length];
       turns.push({
         speaker: m.name,

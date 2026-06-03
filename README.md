@@ -4,6 +4,8 @@
 
 仓库 = 后端 (`server/`，Node.js + TypeScript) + 前端 (`family-frontend/`，Vue 3 + Vite) + Docker Compose 一键部署。
 
+> V0.2 升级要点：AI 生图图集 / 长期记忆 / 节日 + 生日 + 天气触发器 / 关系图谱 / 隐私级联清理。设计文档分别在 [MUL-32](mention://issue/e3e736e2-0afe-45c4-add0-278a92f93e31)（生图）、[MUL-33](mention://issue/0410949e-b39f-4d3c-85e3-42ebf8414a02)（记忆）、[MUL-34](mention://issue/db8c59b9-215d-4437-83ea-f06138778de6)（节日）。
+
 > 想直接看怎么跑，跳到 [本地启动](#local-dev) 或 [Docker 启动](#docker)。
 
 ## 目录
@@ -94,6 +96,7 @@
 | `CRON_BREAKFAST` | `30 7 * * *` | 早餐触发 cron |
 | `CRON_LUNCH` | `0 12 * * *` | 午餐触发 cron |
 | `CRON_DINNER` | `30 18 * * *` | 晚餐触发 cron |
+| `CRON_SUMMARY` | `0 2 * * 0` | V0.2 每周日凌晨跑 L2 长期记忆摘要 |
 | `ENABLE_SCHEDULER` | `production` 默认 1 | 是否在 boot 时拉起 cron |
 
 前端读取 `family-frontend/.env`（参考 `.env.example`）：`VITE_API_BASE`，默认 `/api`，依赖 Vite 代理或 nginx 反代。
@@ -109,22 +112,36 @@
 | POST | `/api/auth/login` | 登录 |
 | GET | `/api/auth/me` | 当前用户信息 |
 | GET | `/api/spaces` | 我的家庭空间列表 |
-| POST | `/api/spaces` | 创建家庭空间 |
+| POST | `/api/spaces` | 创建家庭空间，可选 `locale` / `region`（north \| south） |
 | GET | `/api/spaces/:id` | 空间详情（含成员） |
-| PUT | `/api/spaces/:id` | 重命名 |
-| DELETE | `/api/spaces/:id` | 删除（级联清理成员、画像、对话） |
+| PUT | `/api/spaces/:id` | 重命名 / 修改 locale / region |
+| DELETE | `/api/spaces/:id` | 删除（级联清理成员、画像、对话、记忆、关系、生成资产） |
 | GET | `/api/members/space/:spaceId` | 成员列表 |
 | POST | `/api/members` | 添加成员 |
 | GET | `/api/members/:id` | 成员详情（含画像） |
 | PUT | `/api/members/:id` | 更新成员 |
-| DELETE | `/api/members/:id` | 删除成员（级联清理资料、对话） |
+| DELETE | `/api/members/:id` | 删除成员（V0.2 级联清理记忆、生成资产、上传文件，并把跨成员引用脱敏为 `__deleted__`） |
 | POST | `/api/members/:id/materials/photo` | multipart 上传单张照片 |
 | POST | `/api/members/:id/materials/text` | 添加文本/对话样本 |
 | DELETE | `/api/members/:id/materials/:materialId` | 删除单条资料 |
 | POST | `/api/members/:id/personality` | 调 AI 抽取人格画像 |
-| POST | `/api/members/:id/avatar` | 调 AI 生成卡通头像（需先有画像） |
-| POST | `/api/dinner/start` | 手动开饭，立即生成一段对话 |
-| POST | `/api/dinner/message` | 用户参与对话，AI 自动续写 |
+| POST | `/api/members/:id/avatar` | V0.1 兼容接口：调 AI 生成卡通头像（仅写 member.avatarUrl，不进资产表） |
+| POST | `/api/assets/member/:id/generate` | **V0.2** 生成图集资产，body: `{ assetType, emotion?, size? }`，assetType 取值 `avatar` / `full_body` / `sitting` / `emoji_happy` / `emoji_curious` / ...；同 assetType 重复请求会 upsert |
+| GET | `/api/assets/member/:id` | **V0.2** 列出该成员的全部生成资产 |
+| DELETE | `/api/assets/:assetId` | **V0.2** 删除单张生成资产 |
+| GET | `/api/relations/space/:spaceId` | **V0.2** 列出家庭关系图（双向不对称，两条边） |
+| POST | `/api/relations` | **V0.2** 新建一条关系（`fromMemberId`/`toMemberId`/`relationType`/`addressTerm`/`coAddressTerms?`/`intimacy?`/`status?`） |
+| PUT | `/api/relations/:id` | **V0.2** 修改关系字段 |
+| DELETE | `/api/relations/:id` | **V0.2** 删除关系 |
+| GET | `/api/events/space/:spaceId` | **V0.2** 列出家庭节日/纪念日（生日 / 纪念日） |
+| POST | `/api/events` | **V0.2** 添加 `birthday` / `anniversary`，dateRule 支持 `YYYY-MM-DD` / `MM-DD` / `L-MM-DD`（农历） |
+| DELETE | `/api/events/:id` | **V0.2** 删除事件 |
+| GET | `/api/memory/space/:spaceId` | **V0.2** 列出长期记忆事件 |
+| POST | `/api/memory/summarize` | **V0.2** 立即对某成员某段时间窗口跑 L2 摘要器（默认上一周） |
+| POST | `/api/memory/retrieve` | **V0.2** Top-K 检索（按 keyword + decay + member_overlap + tag + recency 打分） |
+| DELETE | `/api/memory/:id` | **V0.2** 删除单条记忆（必要时下次摘要会重生成） |
+| POST | `/api/dinner/start` | 手动开饭，立即生成一段对话；V0.2 会自动检测节日/生日/天气触发器并把场景上下文注入 prompt |
+| POST | `/api/dinner/message` | 用户参与对话，AI 续写（V0.2：注入关系硬约束 + 长期记忆） |
 | POST | `/api/dinner/:sessionId/end` | 结束饭局 |
 | GET | `/api/dinner/space/:spaceId/sessions` | 饭局历史列表 |
 | GET | `/api/dinner/:sessionId` | 饭局详情 + 全部消息 |

@@ -8,6 +8,10 @@ import spacesRouter from './routes/spaces';
 import membersRouter from './routes/members';
 import dinnerRouter from './routes/dinner';
 import adminRouter from './routes/admin';
+import relationsRouter from './routes/relations';
+import familyEventsRouter from './routes/familyEvents';
+import memoryRouter from './routes/memory';
+import assetsRouter from './routes/assets';
 
 export function createApp(): Express {
   const cfg = loadConfig();
@@ -27,6 +31,10 @@ export function createApp(): Express {
   app.use('/api/members', membersRouter);
   app.use('/api/dinner', dinnerRouter);
   app.use('/api/admin', adminRouter);
+  app.use('/api/relations', relationsRouter);
+  app.use('/api/events', familyEventsRouter);
+  app.use('/api/memory', memoryRouter);
+  app.use('/api/assets', assetsRouter);
 
   app.use(errorHandler);
   return app;
