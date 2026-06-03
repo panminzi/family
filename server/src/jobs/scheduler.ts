@@ -1,18 +1,21 @@
 // Cron-driven scheduler that triggers a dinner session for every space at meal time.
 // `runMealTrigger` is the unit-testable core — the cron wiring around it is thin.
+// V0.2 also runs a weekly summarizer to compress L3 dialogue → L2 episodic events.
 
 import cron from 'node-cron';
 import { getPrisma } from '../utils/prisma';
 import { startDinnerSession, MealType } from '../services/dinner';
+import { summarizeWindow } from '../services/memory';
 
 export interface RunMealTriggerOpts {
   mealType: MealType;
   // Cap how many spaces are triggered per tick (defensive default).
   limit?: number;
+  weather?: 'rain' | 'snow' | 'clear';
 }
 
 export interface RunMealTriggerResult {
-  triggered: Array<{ spaceId: string; sessionId: string; turns: number }>;
+  triggered: Array<{ spaceId: string; sessionId: string; turns: number; trigger?: string | null }>;
   skipped: Array<{ spaceId: string; reason: string }>;
 }
 
@@ -32,14 +35,45 @@ export async function runMealTrigger(
       continue;
     }
     try {
-      const r = await startDinnerSession({ spaceId: s.id, mealType: opts.mealType });
-      triggered.push({ spaceId: s.id, sessionId: r.sessionId, turns: r.turns.length });
+      const r = await startDinnerSession({ spaceId: s.id, mealType: opts.mealType, weather: opts.weather });
+      triggered.push({
+        spaceId: s.id,
+        sessionId: r.sessionId,
+        turns: r.turns.length,
+        trigger: r.trigger?.triggerId ?? null,
+      });
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'unknown';
       skipped.push({ spaceId: s.id, reason: msg });
     }
   }
   return { triggered, skipped };
+}
+
+export async function runWeeklySummarizer(opts?: {
+  now?: Date;
+  windowDays?: number;
+}): Promise<{ summarized: number; spaces: number }> {
+  const prisma = getPrisma();
+  const now = opts?.now ?? new Date();
+  const windowDays = opts?.windowDays ?? 7;
+  const periodEnd = now;
+  const periodStart = new Date(now.getTime() - windowDays * 24 * 3600 * 1000);
+  const spaces = await prisma.familySpace.findMany({ include: { members: true } });
+  let total = 0;
+  for (const s of spaces) {
+    for (const m of (s as any).members) {
+      const events = await summarizeWindow({
+        spaceId: s.id,
+        subjectMemberId: m.id,
+        scope: 'weekly',
+        periodStart,
+        periodEnd,
+      });
+      total += events.length;
+    }
+  }
+  return { summarized: total, spaces: spaces.length };
 }
 
 export interface SchedulerHandle {
@@ -51,6 +85,7 @@ export function startScheduler(spec: {
   cronBreakfast: string;
   cronLunch: string;
   cronDinner: string;
+  cronSummary?: string;
 }): SchedulerHandle {
   const jobs: cron.ScheduledTask[] = [];
   const wrap =
@@ -67,6 +102,18 @@ export function startScheduler(spec: {
   jobs.push(cron.schedule(spec.cronBreakfast, wrap('breakfast')));
   jobs.push(cron.schedule(spec.cronLunch, wrap('lunch')));
   jobs.push(cron.schedule(spec.cronDinner, wrap('dinner')));
+  if (spec.cronSummary) {
+    jobs.push(
+      cron.schedule(spec.cronSummary, async () => {
+        try {
+          await runWeeklySummarizer();
+        } catch (e) {
+          // eslint-disable-next-line no-console
+          console.error('[scheduler] weekly summarizer failed:', e);
+        }
+      }),
+    );
+  }
   return {
     stop(): void {
       for (const j of jobs) j.stop();
@@ -74,3 +121,4 @@ export function startScheduler(spec: {
     jobs,
   };
 }
+

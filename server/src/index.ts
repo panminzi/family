@@ -23,6 +23,7 @@ function main(): void {
       cronBreakfast: cfg.cronBreakfast,
       cronLunch: cfg.cronLunch,
       cronDinner: cfg.cronDinner,
+      cronSummary: cfg.cronSummary,
     });
     process.on('SIGTERM', () => handle.stop());
     // eslint-disable-next-line no-console

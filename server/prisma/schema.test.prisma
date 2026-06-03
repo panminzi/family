@@ -24,10 +24,14 @@ model FamilySpace {
   id        String         @id @default(uuid())
   name      String
   ownerId   String
+  locale    String         @default("zh-CN")
+  region    String         @default("north")
   owner     User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   createdAt DateTime       @default(now())
   members   FamilyMember[]
   sessions  DinnerSession[]
+  events    FamilyEvent[]
+  relations Relation[]
 }
 
 model FamilyMember {
@@ -39,9 +43,15 @@ model FamilyMember {
   description String
   personality String?
   avatarUrl   String?
+  seed        Int?
+  birthday    String?
   createdAt   DateTime   @default(now())
   materials   Material[]
   messages    ChatMessage[]
+  assets      GeneratedAsset[]
+  memoryEvents MemoryEvent[]    @relation("MemoryEventSubject")
+  outRelations Relation[]       @relation("RelationFrom")
+  inRelations  Relation[]       @relation("RelationTo")
 }
 
 model Material {
@@ -55,13 +65,14 @@ model Material {
 }
 
 model DinnerSession {
-  id        String        @id @default(uuid())
-  spaceId   String
-  space     FamilySpace   @relation(fields: [spaceId], references: [id], onDelete: Cascade)
-  mealType  String
-  startedAt DateTime      @default(now())
-  endedAt   DateTime?
-  messages  ChatMessage[]
+  id          String        @id @default(uuid())
+  spaceId     String
+  space       FamilySpace   @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  mealType    String
+  triggerInfo String?
+  startedAt   DateTime      @default(now())
+  endedAt     DateTime?
+  messages    ChatMessage[]
 }
 
 model ChatMessage {
@@ -75,4 +86,90 @@ model ChatMessage {
   content   String
   sequence  Int
   createdAt DateTime      @default(now())
+}
+
+model Relation {
+  id              String       @id @default(uuid())
+  spaceId         String
+  space           FamilySpace  @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  fromMemberId   String
+  fromMember     FamilyMember @relation("RelationFrom", fields: [fromMemberId], references: [id], onDelete: Cascade)
+  toMemberId     String
+  toMember       FamilyMember @relation("RelationTo", fields: [toMemberId], references: [id], onDelete: Cascade)
+  relationType   String
+  addressTerm    String
+  coAddressTerms String?
+  intimacy       Float        @default(0.7)
+  status         String       @default("active")
+  notes          String?
+  createdAt      DateTime     @default(now())
+
+  @@unique([fromMemberId, toMemberId])
+  @@index([spaceId])
+}
+
+model FamilyEvent {
+  id          String       @id @default(uuid())
+  spaceId     String
+  space       FamilySpace  @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  kind        String
+  memberId    String?
+  dateRule    String
+  title       String
+  notes       String?
+  createdAt   DateTime     @default(now())
+
+  @@index([spaceId])
+}
+
+model MemoryEvent {
+  id                  String       @id @default(uuid())
+  spaceId             String
+  subjectMemberId     String
+  subjectMember       FamilyMember @relation("MemoryEventSubject", fields: [subjectMemberId], references: [id], onDelete: Cascade)
+  scope               String
+  periodStart         DateTime
+  periodEnd           DateTime
+  summary             String
+  emotion             String?
+  mentionedMembers    String?
+  tags                String?
+  salience            Float        @default(0.5)
+  decayFloor          Float        @default(0.0)
+  permanent           Boolean      @default(false)
+  sourceDialogueIds  String?
+  model               String?
+  version             Int          @default(1)
+  createdAt           DateTime     @default(now())
+
+  @@index([spaceId, subjectMemberId])
+  @@index([periodEnd])
+}
+
+model GeneratedAsset {
+  id            String       @id @default(uuid())
+  memberId      String
+  member        FamilyMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  assetType     String
+  imageUrl      String
+  isPlaceholder Boolean      @default(false)
+  prompt        String?
+  seed          Int?
+  service       String?
+  cost          Float?
+  createdAt     DateTime     @default(now())
+
+  @@unique([memberId, assetType])
+  @@index([memberId])
+}
+
+model TriggerLog {
+  id         String   @id @default(uuid())
+  spaceId    String
+  triggerId  String
+  sceneId    String?
+  firedAt    DateTime @default(now())
+  mealType   String?
+
+  @@index([spaceId, triggerId, firedAt])
 }

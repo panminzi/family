@@ -5,8 +5,16 @@ import { getPrisma } from '../utils/prisma';
 
 const router = Router();
 
-const createSchema = z.object({ name: z.string().min(1).max(40) });
-const updateSchema = z.object({ name: z.string().min(1).max(40) });
+const createSchema = z.object({
+  name: z.string().min(1).max(40),
+  locale: z.string().max(20).optional(),
+  region: z.enum(['north', 'south']).optional(),
+});
+const updateSchema = z.object({
+  name: z.string().min(1).max(40).optional(),
+  locale: z.string().max(20).optional(),
+  region: z.enum(['north', 'south']).optional(),
+});
 
 router.use(requireAuth);
 
@@ -29,7 +37,12 @@ router.post('/', async (req: AuthedRequest, res, next) => {
     const body = createSchema.parse(req.body);
     const prisma = getPrisma();
     const space = await prisma.familySpace.create({
-      data: { name: body.name, ownerId: req.userId! },
+      data: {
+        name: body.name,
+        ownerId: req.userId!,
+        ...(body.locale ? { locale: body.locale } : {}),
+        ...(body.region ? { region: body.region } : {}),
+      },
     });
     res.status(201).json(space);
   } catch (e) {
@@ -59,7 +72,7 @@ router.put('/:id', async (req: AuthedRequest, res, next) => {
     if (!existing || existing.ownerId !== req.userId) throw new HttpError(404, 'not_found');
     const updated = await prisma.familySpace.update({
       where: { id: req.params.id },
-      data: { name: body.name },
+      data: body,
     });
     res.json(updated);
   } catch (e) {

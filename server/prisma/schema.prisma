@@ -23,10 +23,15 @@ model FamilySpace {
   id        String         @id @default(uuid())
   name      String
   ownerId   String
+  // V0.2: locale/region for lunar calendar + dongzhi (饺子/汤圆) regional differences.
+  locale    String         @default("zh-CN")
+  region    String         @default("north")
   owner     User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   createdAt DateTime       @default(now())
   members   FamilyMember[]
   sessions  DinnerSession[]
+  events    FamilyEvent[]
+  relations Relation[]
 }
 
 model FamilyMember {
@@ -38,10 +43,19 @@ model FamilyMember {
   description String
   // Personality profile is stored as a JSON string for cross-DB portability.
   personality String?
+  // Anchor avatar URL — first generated portrait, used as IP-Adapter reference.
   avatarUrl   String?
+  // V0.2: deterministic seed for image generation consistency.
+  seed        Int?
+  // V0.2: birthday for family_birthday trigger (ISO date string, optional).
+  birthday    String?
   createdAt   DateTime   @default(now())
   materials   Material[]
   messages    ChatMessage[]
+  assets      GeneratedAsset[]
+  memoryEvents MemoryEvent[]    @relation("MemoryEventSubject")
+  outRelations Relation[]       @relation("RelationFrom")
+  inRelations  Relation[]       @relation("RelationTo")
 }
 
 model Material {
@@ -59,6 +73,8 @@ model DinnerSession {
   spaceId   String
   space     FamilySpace   @relation(fields: [spaceId], references: [id], onDelete: Cascade)
   mealType  String        // "breakfast" | "lunch" | "dinner"
+  // V0.2: trigger metadata (JSON: trigger_id, scene_id, props, opening_hook, occasion).
+  triggerInfo String?
   startedAt DateTime      @default(now())
   endedAt   DateTime?
   messages  ChatMessage[]
@@ -70,9 +86,106 @@ model ChatMessage {
   session   DinnerSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   memberId  String?
   member    FamilyMember? @relation(fields: [memberId], references: [id], onDelete: SetNull)
-  role      String        // "member" | "user"
-  speaker   String        // 显示名（成员名 / "我"）
+  role      String        // "member" | "user" | "narrator"
+  speaker   String        // 显示名（成员名 / "我" / "旁白"）
   content   String
   sequence  Int
   createdAt DateTime      @default(now())
+}
+
+// V0.2: directional family relation graph (双向不对称：两条边)
+model Relation {
+  id              String       @id @default(uuid())
+  spaceId         String
+  space           FamilySpace  @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  fromMemberId   String
+  fromMember     FamilyMember @relation("RelationFrom", fields: [fromMemberId], references: [id], onDelete: Cascade)
+  toMemberId     String
+  toMember       FamilyMember @relation("RelationTo", fields: [toMemberId], references: [id], onDelete: Cascade)
+  // spouse_of | parent_of | child_of | sibling_of | grandparent_of | grandchild_of | extended_family_of
+  relationType   String
+  addressTerm    String       // 主称呼 e.g. "妈"
+  coAddressTerms String?      // JSON string array, alt addresses
+  intimacy       Float        @default(0.7)
+  status         String       @default("active") // active | deceased | estranged
+  notes          String?
+  createdAt      DateTime     @default(now())
+
+  @@unique([fromMemberId, toMemberId])
+  @@index([spaceId])
+}
+
+// V0.2: family birthdays / anniversaries (custom triggers)
+model FamilyEvent {
+  id          String       @id @default(uuid())
+  spaceId     String
+  space       FamilySpace  @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  // birthday | anniversary
+  kind        String
+  // optional bound member (birthday)
+  memberId    String?
+  // 公历: "MM-DD" or "YYYY-MM-DD" / 农历: "L-MM-DD"
+  dateRule    String
+  title       String
+  notes       String?
+  createdAt   DateTime     @default(now())
+
+  @@index([spaceId])
+}
+
+// V0.2 long-term memory: episodic event summary (L2)
+model MemoryEvent {
+  id                  String       @id @default(uuid())
+  spaceId             String
+  // subject member: whose memory is this attached to
+  subjectMemberId     String
+  subjectMember       FamilyMember @relation("MemoryEventSubject", fields: [subjectMemberId], references: [id], onDelete: Cascade)
+  scope               String       // weekly | monthly | anchor
+  periodStart         DateTime
+  periodEnd           DateTime
+  summary             String       // <= 40字
+  emotion             String?
+  // mentionedMembers + tags + sourceDialogueIds: JSON string arrays for portability
+  mentionedMembers    String?
+  tags                String?
+  salience            Float        @default(0.5)
+  decayFloor          Float        @default(0.0)
+  permanent           Boolean      @default(false)
+  sourceDialogueIds  String?
+  model               String?
+  version             Int          @default(1)
+  createdAt           DateTime     @default(now())
+
+  @@index([spaceId, subjectMemberId])
+  @@index([periodEnd])
+}
+
+// V0.2: AI-generated visual assets per member.
+model GeneratedAsset {
+  id          String       @id @default(uuid())
+  memberId    String
+  member      FamilyMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  assetType   String       // avatar | full_body | sitting | emoji_happy | emoji_curious | ...
+  imageUrl    String       // public URL or relative /uploads/...
+  isPlaceholder Boolean    @default(false)
+  prompt      String?
+  seed        Int?
+  service     String?      // openai | stub | jimeng | sdxl
+  cost        Float?
+  createdAt   DateTime     @default(now())
+
+  @@unique([memberId, assetType])
+  @@index([memberId])
+}
+
+// V0.2: trigger fire log (audit + 30d-no-repeat)
+model TriggerLog {
+  id         String   @id @default(uuid())
+  spaceId    String
+  triggerId  String
+  sceneId    String?
+  firedAt    DateTime @default(now())
+  mealType   String?
+
+  @@index([spaceId, triggerId, firedAt])
 }
