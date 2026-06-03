@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { membersApi, spacesApi } from '../api';
 import type { MemberDTO, SpaceDTO } from '../api/client';
 import MemberCard from '../components/MemberCard.vue';
+import RelationsPanel from '../components/RelationsPanel.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -96,6 +97,12 @@ onMounted(load);
         @click="openMember(m)"
       />
     </div>
+
+    <RelationsPanel
+      v-if="!loading && space"
+      :space-id="spaceId"
+      :members="members"
+    />
   </div>
 </template>
 

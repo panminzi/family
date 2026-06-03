@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import type { MemberDTO } from '../api/client';
+import MemberAvatar from './MemberAvatar.vue';
 
 const props = defineProps<{ member: MemberDTO; clickable?: boolean }>();
-const initials = computed(() => props.member.name.slice(0, 1));
 const traitTags = computed(() => (props.member.personality?.traits ?? []).slice(0, 4));
 </script>
 
@@ -13,15 +13,12 @@ const traitTags = computed(() => (props.member.personality?.traits ?? []).slice(
     :class="{ clickable: clickable !== false }"
     data-test="member-card"
   >
-    <div class="avatar-wrap">
-      <img
-        v-if="member.avatarUrl"
-        class="avatar"
+    <div class="avatar-frame">
+      <MemberAvatar
         :src="member.avatarUrl"
-        :alt="member.name"
-        data-test="avatar"
+        :name="member.name"
+        :size="92"
       />
-      <div v-else class="avatar placeholder" data-test="avatar-placeholder">{{ initials }}</div>
     </div>
     <div class="meta">
       <strong class="name">{{ member.name }}</strong>
@@ -53,23 +50,12 @@ const traitTags = computed(() => (props.member.personality?.traits ?? []).slice(
   transform: translateY(-3px);
   box-shadow: 0 14px 32px rgba(196, 124, 44, 0.2);
 }
-.avatar-wrap {
-  width: 92px; height: 92px;
+.avatar-frame {
+  padding: 4px;
   border-radius: 50%;
   background: linear-gradient(135deg, #fff3df, #ffe2b8);
-  padding: 4px;
   box-shadow: inset 0 0 0 1px var(--line);
   margin-bottom: .25rem;
-}
-.avatar {
-  width: 100%; height: 100%; border-radius: 50%;
-  object-fit: cover;
-  background: var(--cream-200);
-}
-.avatar.placeholder {
-  display: flex; align-items: center; justify-content: center;
-  font-size: 32px; font-weight: 700; color: var(--wood-700);
-  background: var(--cream-100);
 }
 .meta { display: inline-flex; align-items: center; gap: .5rem; flex-wrap: wrap; justify-content: center; }
 .name { font-size: 1rem; }

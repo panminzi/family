@@ -83,4 +83,64 @@ export interface DinnerSessionDTO {
   mealType: 'breakfast' | 'lunch' | 'dinner';
   startedAt: string;
   endedAt: string | null;
+  triggerInfo?: string | null;
+}
+
+export interface GeneratedAssetDTO {
+  id: string;
+  memberId: string;
+  assetType: string;
+  imageUrl: string;
+  isPlaceholder: boolean;
+  prompt: string;
+  seed: number | null;
+  service: string;
+  cost: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type RelationStatus = 'active' | 'deceased' | 'estranged';
+
+export interface RelationDTO {
+  id: string;
+  spaceId: string;
+  fromMemberId: string;
+  toMemberId: string;
+  relationType: string;
+  addressTerm: string;
+  coAddressTerms: string[];
+  intimacy: number;
+  status: RelationStatus;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MemoryEventDTO {
+  id: string;
+  spaceId: string;
+  subjectMemberId: string;
+  scope: 'weekly' | 'monthly' | string;
+  periodStart: string;
+  periodEnd: string;
+  summary: string;
+  emotion?: string | null;
+  tags?: string | null;
+  involvedMemberIds?: string | null;
+  importance?: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TriggerHitDTO {
+  triggerId: string;
+  sceneId: string;
+}
+
+export interface DinnerStartResponse {
+  sessionId: string;
+  turns: ChatMessageDTO[];
+  trigger?: TriggerHitDTO | null;
+  overlays?: TriggerHitDTO[];
 }

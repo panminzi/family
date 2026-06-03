@@ -1,4 +1,17 @@
-import { api, MemberDTO, SpaceDTO, UserDTO, ChatMessageDTO, DinnerSessionDTO, MaterialDTO } from './client';
+import {
+  api,
+  ChatMessageDTO,
+  DinnerSessionDTO,
+  DinnerStartResponse,
+  GeneratedAssetDTO,
+  MaterialDTO,
+  MemberDTO,
+  MemoryEventDTO,
+  RelationDTO,
+  RelationStatus,
+  SpaceDTO,
+  UserDTO,
+} from './client';
 
 export interface AuthResponse {
   token: string;
@@ -53,9 +66,7 @@ export const membersApi = {
 
 export const dinnerApi = {
   start: (spaceId: string, mealType: 'breakfast' | 'lunch' | 'dinner') =>
-    api
-      .post<{ sessionId: string; turns: ChatMessageDTO[] }>('/dinner/start', { spaceId, mealType })
-      .then((r) => r.data),
+    api.post<DinnerStartResponse>('/dinner/start', { spaceId, mealType }).then((r) => r.data),
   message: (spaceId: string, sessionId: string, content: string) =>
     api
       .post<{
@@ -70,4 +81,49 @@ export const dinnerApi = {
     api
       .get<{ session: DinnerSessionDTO; messages: ChatMessageDTO[] }>(`/dinner/${sessionId}`)
       .then((r) => r.data),
+};
+
+export const assetsApi = {
+  list: (memberId: string) =>
+    api.get<GeneratedAssetDTO[]>(`/assets/member/${memberId}`).then((r) => r.data),
+  generate: (
+    memberId: string,
+    body: { assetType: string; emotion?: string; size?: string },
+  ) =>
+    api
+      .post<GeneratedAssetDTO>(`/assets/member/${memberId}/generate`, body)
+      .then((r) => r.data),
+  remove: (assetId: string) => api.delete(`/assets/${assetId}`).then((r) => r.data),
+};
+
+export interface RelationCreateInput {
+  spaceId: string;
+  fromMemberId: string;
+  toMemberId: string;
+  relationType: string;
+  addressTerm: string;
+  coAddressTerms?: string[];
+  intimacy?: number;
+  status?: RelationStatus;
+  notes?: string;
+}
+
+export type RelationUpdateInput = Partial<Omit<RelationCreateInput, 'spaceId'>> & {
+  spaceId: string;
+};
+
+export const relationsApi = {
+  list: (spaceId: string) =>
+    api.get<RelationDTO[]>(`/relations/space/${spaceId}`).then((r) => r.data),
+  create: (input: RelationCreateInput) =>
+    api.post<RelationDTO>('/relations', input).then((r) => r.data),
+  update: (id: string, input: RelationUpdateInput) =>
+    api.put<RelationDTO>(`/relations/${id}`, input).then((r) => r.data),
+  remove: (id: string) => api.delete(`/relations/${id}`).then((r) => r.data),
+};
+
+export const memoryApi = {
+  list: (spaceId: string) =>
+    api.get<MemoryEventDTO[]>(`/memory/space/${spaceId}`).then((r) => r.data),
+  remove: (id: string) => api.delete(`/memory/${id}`).then((r) => r.data),
 };

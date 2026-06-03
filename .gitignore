@@ -40,6 +40,7 @@ coverage/
 # misc
 .cache/
 .npm/
+.npm-cache/
 
 # Multica agent runtime artifacts (per-session, do not version)
 .agent_context/

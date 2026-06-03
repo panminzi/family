@@ -17,15 +17,17 @@ const baseMember: MemberDTO = {
 describe('MemberCard', () => {
   it('shows initials when avatar missing', () => {
     const w = mount(MemberCard, { props: { member: baseMember } });
-    expect(w.find('[data-test="avatar-placeholder"]').text()).toBe('老');
-    expect(w.find('[data-test="avatar"]').exists()).toBe(false);
+    const fallback = w.find('[data-test="member-avatar-fallback"]');
+    expect(fallback.exists()).toBe(true);
+    expect(fallback.text()).toBe('老');
+    expect(w.find('[data-test="member-avatar-img"]').exists()).toBe(false);
     expect(w.find('[data-test="no-personality"]').exists()).toBe(true);
   });
 
   it('renders avatar when set', () => {
     const m = { ...baseMember, avatarUrl: 'https://example.com/a.png' };
     const w = mount(MemberCard, { props: { member: m } });
-    const img = w.find('[data-test="avatar"]');
+    const img = w.find('[data-test="member-avatar-img"]');
     expect(img.exists()).toBe(true);
     expect(img.attributes('src')).toBe('https://example.com/a.png');
   });

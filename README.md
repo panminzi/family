@@ -34,7 +34,7 @@
 | AI | OpenAI Chat Completions（人格画像 / 多人对话）+ OpenAI Images（卡通头像，DALL·E 3 默认）。无 key 时落到内置 stub 自动生成占位画像 / 占位头像 / 模板对话，端到端可跑。 |
 | 后端测试 | vitest + supertest（29 用例） |
 | 前端框架 | Vue 3, Vite 5, TypeScript 5, Pinia 2, Vue Router 4, Element Plus 2 |
-| 前端测试 | vitest + @vue/test-utils + happy-dom（19 用例） |
+| 前端测试 | vitest + @vue/test-utils + happy-dom（V0.2 起 40 用例） |
 | 部署 | Docker Compose（postgres + server + nginx 静态前端） |
 
 <a id="layout"></a>
@@ -229,7 +229,7 @@ cd family-frontend && npm test
 - 饭点：开饭、用户消息 + AI 续写（顺序连续）、历史、结束、`runMealTrigger` 全部 / 跳过
 - 调度器：cron 表达式有效 / 非法即抛 / `stop()` 干净
 
-前端测试覆盖：MemberCard / ChatBubble 渲染、auth store 行为、SpacesPage 列表 + 创建、LoginPage 成功/失败、MemberAddPage 表单、DinnerPage 加载 + 发送 + 结束。
+前端测试覆盖：MemberCard / ChatBubble 渲染、auth store 行为、SpacesPage 列表 + 创建、LoginPage 成功/失败、MemberAddPage 表单、DinnerPage 加载 + 发送 + 结束、V0.2 节日皮肤主题映射、关系编辑面板创建/列表/兜底。
 
 <a id="privacy"></a>
 ## 隐私说明

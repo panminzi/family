@@ -5,6 +5,7 @@ import { dinnerApi, membersApi } from '../api';
 import type { ChatMessageDTO, MemberDTO } from '../api/client';
 import ChatBubble from '../components/ChatBubble.vue';
 import DiningTable from '../components/DiningTable.vue';
+import { useTheme } from '../theme/useTheme';
 
 const route = useRoute();
 const router = useRouter();
@@ -22,6 +23,7 @@ const error = ref('');
 const loaded = ref(false);
 const members = ref<MemberDTO[]>([]);
 const chatListRef = ref<HTMLDivElement | null>(null);
+const { theme, setFromTriggerInfo } = useTheme();
 
 const speakingMemberId = computed(() => {
   const last = messages.value[messages.value.length - 1];
@@ -41,6 +43,7 @@ async function load(): Promise<void> {
       members.value = ms;
     } catch { /* members optional, table degrades to no-seats */ }
     const r = await dinnerApi.detail(sessionId);
+    setFromTriggerInfo(r.session.triggerInfo ?? null);
     streamFromIdx.value = 0;
     messages.value = r.messages;
     scrollBottom();
@@ -98,11 +101,16 @@ onMounted(load);
     <div class="title-bar">
       <h2>开饭中…</h2>
       <span class="badge tomato">实时对话</span>
+      <span
+        v-if="theme.key !== 'default'"
+        class="badge theme-badge"
+        data-test="dinner-theme-chip"
+      >{{ theme.label }}</span>
     </div>
 
     <p v-if="error" class="err">{{ error }}</p>
 
-    <DiningTable :members="members" :speaking-member-id="speakingMemberId" />
+    <DiningTable :members="members" :speaking-member-id="speakingMemberId" :theme="theme" />
 
     <div class="chat-list" ref="chatListRef" data-test="chat-list">
       <ChatBubble
@@ -147,6 +155,11 @@ onMounted(load);
   font-size: .75rem; padding: .2rem .6rem; border-radius: var(--radius-pill);
 }
 .badge.tomato { background: var(--rose-100); color: var(--tomato-500); }
+.badge.theme-badge {
+  background: color-mix(in srgb, var(--theme-primary, #f08a6a) 18%, white);
+  color: color-mix(in srgb, var(--theme-primary, #f08a6a) 70%, #4a2a18);
+  border: 1px solid color-mix(in srgb, var(--theme-primary, #f08a6a) 30%, transparent);
+}
 
 .chat-list {
   margin-top: 1rem;
