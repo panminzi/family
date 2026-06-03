@@ -21,5 +21,15 @@ const stubs = {
     template:
       '<button :disabled="disabled || loading" @click="$emit(\'click\')"><slot /></button>',
   },
+  'el-select': {
+    props: ['modelValue', 'placeholder'],
+    emits: ['update:modelValue'],
+    template:
+      '<select :value="modelValue" @change="$emit(\'update:modelValue\', $event.target.value)"><slot /></select>',
+  },
+  'el-option': {
+    props: ['label', 'value', 'disabled'],
+    template: '<option :value="value" :disabled="disabled">{{ label }}</option>',
+  },
 };
 config.global.stubs = { ...config.global.stubs, ...stubs };

@@ -3,14 +3,15 @@ import { mount, flushPromises } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import { createRouter, createMemoryHistory } from 'vue-router';
 
-const { listMock, startMock } = vi.hoisted(() => ({
+const { listMock, startMock, sessionsMock } = vi.hoisted(() => ({
   listMock: vi.fn(),
   startMock: vi.fn(),
+  sessionsMock: vi.fn(),
 }));
 
 vi.mock('../src/api', () => ({
   membersApi: { list: listMock },
-  dinnerApi: { start: startMock },
+  dinnerApi: { start: startMock, sessions: sessionsMock },
   spacesApi: {},
   authApi: {},
 }));
@@ -37,6 +38,8 @@ describe('SceneHomePage', () => {
     setActivePinia(createPinia());
     listMock.mockReset();
     startMock.mockReset();
+    sessionsMock.mockReset();
+    sessionsMock.mockResolvedValue([]);
   });
 
   it('renders countdown and meal buttons', async () => {
